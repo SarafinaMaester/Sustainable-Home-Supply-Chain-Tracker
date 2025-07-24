@@ -1,2 +1,182 @@
-# Sustainable Home Supply Chain Tracker
+> 🏠 A blockchain-based platform for tracking eco-friendly home materials from origin to your doorstep
 
+## 🚀 Overview
+
+The Sustainable Home Supply Chain Tracker is a Clarity smart contract that provides transparency and authenticity for eco-friendly home goods. Track your furniture, fixtures, and materials through their complete lifecycle while earning carbon offset credits! 🌍
+
+## ✨ Key Features
+
+### 🔐 NFT-Style Product Authentication
+- Unique product registration with sustainability records
+- Immutable authenticity verification
+- Owner-based transfer system
+
+### 📈 Lifecycle Tracking System
+- **Raw Materials** → **Factory** → **Home** journey tracking
+- Location-based verification at each stage
+- Handler authentication for each transition
+
+### 🌿 Carbon Offset Credits
+- Automatic carbon credit tagging for eco-friendly products
+- Claimable credits for product owners
+- Personal carbon offset tracking
+
+### ✅ Verified Vendor Registry  
+- Certification-based vendor verification
+- Specialty categorization
+- Trust level management
+
+### 🗳️ Green Rating DAO
+- Community-driven sustainability ratings (1-5 stars)
+- Democratic voting system for product quality
+- Average rating calculations
+
+## 🛠️ Contract Functions
+
+### 📦 Product Management
+
+#### `register-product`
+Register a new sustainable product with full sustainability metrics
+```clarity
+(register-product "Bamboo Table" "Furniture" u1 u50 u25)
+```
+
+#### `update-lifecycle-stage`  
+Update product journey stage with location verification
+```clarity
+(update-lifecycle-stage u1 "factory" "Sustainable Factory Inc")
+```
+
+#### `transfer-product-ownership`
+Transfer product ownership with automatic lifecycle update
+```clarity
+(transfer-product-ownership u1 'SP2ABC...)
+```
+
+### 🏭 Vendor Operations
+
+#### `register-vendor`
+Register as a verified sustainable vendor
+```clarity
+(register-vendor "EcoWood Co" "Sustainable Furniture")
+```
+
+#### `verify-vendor-certification`
+Admin function to set vendor certification levels
+```clarity  
+(verify-vendor-certification u1 u3)
+```
+
+### 🌟 Rating & Credits
+
+#### `vote-green-rating`
+Vote on product sustainability (1-5 rating scale)
+```clarity
+(vote-green-rating u1 u5)
+```
+
+#### `claim-carbon-credits`  
+Claim carbon offset credits from owned products
+```clarity
+(claim-carbon-credits u1)
+```
+
+### 📊 Read-Only Functions
+
+- `get-product-info` - Get complete product details
+- `get-lifecycle-stage` - Get specific stage information  
+- `get-vendor-info` - Get vendor details and certification
+- `get-product-rating` - Get voting totals for products
+- `get-user-vote` - Check individual user votes
+- `get-carbon-credits` - Get user's total carbon credits
+- `calculate-average-rating` - Get calculated average rating
+
+## 🏗️ Getting Started
+
+### Prerequisites
+- Clarinet CLI installed
+- Stacks wallet for deployment
+
+### Installation
+
+1. **Clone and setup**
+   ```bash
+   git clone <repository-url>
+   cd sustainable-home-supply-chain-tracker
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Test the contract**
+   ```bash
+   clarinet check
+   npm test
+   ```
+
+### 🎯 Usage Examples
+
+#### Register as Vendor
+```bash
+clarinet console
+(contract-call? .Sustainable-Home-Supply-Chain-Tracker register-vendor "Green Materials Co" "Flooring")
+```
+
+#### Track Product Journey
+```bash
+# Register product  
+(contract-call? .Sustainable-Home-Supply-Chain-Tracker register-product "Cork Flooring" "Flooring" u1 u30 u15)
+
+# Update to factory stage
+(contract-call? .Sustainable-Home-Supply-Chain-Tracker update-lifecycle-stage u1 "factory" "Eco Factory Portugal")
+
+# Update to delivered stage  
+(contract-call? .Sustainable-Home-Supply-Chain-Tracker update-lifecycle-stage u1 "delivered" "Customer Home")
+```
+
+#### Community Rating
+```bash
+# Vote on product sustainability
+(contract-call? .Sustainable-Home-Supply-Chain-Tracker vote-green-rating u1 u4)
+
+# Check average rating
+(contract-call? .Sustainable-Home-Supply-Chain-Tracker calculate-average-rating u1)
+```
+
+## 🔒 Security Features
+
+- Owner-only product transfers
+- Admin-controlled vendor verification
+- Input validation for ratings (1-5 scale)
+- Unauthorized access protection
+- Vote update capabilities (users can change their votes)
+
+## 🌍 Environmental Impact
+
+Each product tracks:
+- 🏭 **Carbon Footprint**: Total emissions during production
+- 🌱 **Carbon Offset Credits**: Environmental compensation credits  
+- ⭐ **Community Ratings**: Crowd-sourced sustainability scores
+- 📍 **Supply Chain Transparency**: Full journey tracking
+
+## 📋 Contract Data
+
+- **Products**: 257 lines of comprehensive tracking
+- **Vendors**: Verified sustainability partners  
+- **Lifecycle**: Complete journey documentation
+- **Ratings**: Democratic sustainability assessment
+- **Credits**: Personal environmental impact tracking
+
+## 🤝 Contributing
+
+This is an MVP implementation focused on core functionality. Future enhancements welcome! 
+
+## 📄 License
+
+Open source - build a more sustainable future together! 🌱
+
+---
+
+*Built with 💚 for a sustainable tomorrow*
