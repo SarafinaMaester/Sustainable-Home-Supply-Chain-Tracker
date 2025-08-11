@@ -4,6 +4,9 @@
 (define-constant ERR_ALREADY_EXISTS (err u102))
 (define-constant ERR_INVALID_STAGE (err u103))
 (define-constant ERR_INVALID_RATING (err u104))
+(define-constant ERR_INSUFFICIENT_FUNDS (err u105))
+(define-constant ERR_NOT_FOR_SALE (err u106))
+(define-constant ERR_ALREADY_LISTED (err u107))
 
 (define-data-var next-product-id uint u1)
 (define-data-var next-vendor-id uint u1)
@@ -57,6 +60,25 @@
 (define-map user-carbon-offsets
   { user: principal }
   { total-credits: uint }
+)
+
+(define-map marketplace-listings
+  { product-id: uint }
+  {
+    seller: principal,
+    price: uint,
+    listed-at: uint,
+    active: bool
+  }
+)
+
+(define-map purchase-escrow
+  { product-id: uint, buyer: principal }
+  {
+    amount: uint,
+    created-at: uint,
+    released: bool
+  }
 )
 
 (define-public (register-vendor (name (string-ascii 64)) (specialty (string-ascii 32)))
@@ -217,6 +239,102 @@
   )
 )
 
+(define-public (list-product-for-sale (product-id uint) (price uint))
+  (let ((product (unwrap! (map-get? products { product-id: product-id }) ERR_NOT_FOUND))
+        (existing-listing (map-get? marketplace-listings { product-id: product-id })))
+    (asserts! (is-eq tx-sender (get owner product)) ERR_UNAUTHORIZED)
+    (asserts! (> price u0) ERR_INVALID_RATING)
+    (asserts! (or (is-none existing-listing) 
+                  (not (get active (unwrap-panic existing-listing)))) ERR_ALREADY_LISTED)
+    (map-set marketplace-listings
+      { product-id: product-id }
+      {
+        seller: tx-sender,
+        price: price,
+        listed-at: stacks-block-height,
+        active: true
+      }
+    )
+    (ok true)
+  )
+)
+
+(define-public (cancel-listing (product-id uint))
+  (let ((listing (unwrap! (map-get? marketplace-listings { product-id: product-id }) ERR_NOT_FOUND)))
+    (asserts! (is-eq tx-sender (get seller listing)) ERR_UNAUTHORIZED)
+    (asserts! (get active listing) ERR_NOT_FOR_SALE)
+    (map-set marketplace-listings
+      { product-id: product-id }
+      (merge listing { active: false })
+    )
+    (ok true)
+  )
+)
+
+(define-public (purchase-product (product-id uint))
+  (let ((listing (unwrap! (map-get? marketplace-listings { product-id: product-id }) ERR_NOT_FOUND))
+        (product (unwrap! (map-get? products { product-id: product-id }) ERR_NOT_FOUND)))
+    (asserts! (get active listing) ERR_NOT_FOR_SALE)
+    (asserts! (not (is-eq tx-sender (get seller listing))) ERR_UNAUTHORIZED)
+    (asserts! (>= (stx-get-balance tx-sender) (get price listing)) ERR_INSUFFICIENT_FUNDS)
+    (try! (stx-transfer? (get price listing) tx-sender (get seller listing)))
+    (map-set products
+      { product-id: product-id }
+      (merge product { owner: tx-sender })
+    )
+    (map-set marketplace-listings
+      { product-id: product-id }
+      (merge listing { active: false })
+    )
+    (try! (update-lifecycle-stage product-id "sold" "marketplace"))
+    (ok true)
+  )
+)
+
+(define-public (create-purchase-escrow (product-id uint))
+  (let ((listing (unwrap! (map-get? marketplace-listings { product-id: product-id }) ERR_NOT_FOUND))
+        (existing-escrow (map-get? purchase-escrow { product-id: product-id, buyer: tx-sender })))
+    (asserts! (get active listing) ERR_NOT_FOR_SALE)
+    (asserts! (not (is-eq tx-sender (get seller listing))) ERR_UNAUTHORIZED)
+    (asserts! (is-none existing-escrow) ERR_ALREADY_EXISTS)
+    (asserts! (>= (stx-get-balance tx-sender) (get price listing)) ERR_INSUFFICIENT_FUNDS)
+    (try! (stx-transfer? (get price listing) tx-sender (as-contract tx-sender)))
+    (map-set purchase-escrow
+      { product-id: product-id, buyer: tx-sender }
+      {
+        amount: (get price listing),
+        created-at: stacks-block-height,
+        released: false
+      }
+    )
+    (ok true)
+  )
+)
+
+(define-public (release-escrow (product-id uint) (buyer principal))
+  (let ((escrow (unwrap! (map-get? purchase-escrow { product-id: product-id, buyer: buyer }) ERR_NOT_FOUND))
+        (listing (unwrap! (map-get? marketplace-listings { product-id: product-id }) ERR_NOT_FOUND))
+        (product (unwrap! (map-get? products { product-id: product-id }) ERR_NOT_FOUND)))
+    (asserts! (is-eq tx-sender (get seller listing)) ERR_UNAUTHORIZED)
+    (asserts! (not (get released escrow)) ERR_ALREADY_EXISTS)
+    (try! (as-contract (stx-transfer? (get amount escrow) tx-sender (get seller listing))))
+    (map-set products
+      { product-id: product-id }
+      (merge product { owner: buyer })
+    )
+    (map-set marketplace-listings
+      { product-id: product-id }
+      (merge listing { active: false })
+    )
+    (map-set purchase-escrow
+      { product-id: product-id, buyer: buyer }
+      (merge escrow { released: true })
+    )
+    (try! (update-lifecycle-stage product-id "sold" "marketplace"))
+    (ok true)
+  )
+)
+
 (define-read-only (get-product-info (product-id uint))
   (map-get? products { product-id: product-id })
 )
@@ -251,6 +369,23 @@
         )
       )
       none
+    )
+  )
+)
+
+(define-read-only (get-listing (product-id uint))
+  (map-get? marketplace-listings { product-id: product-id })
+)
+
+(define-read-only (get-escrow (product-id uint) (buyer principal))
+  (map-get? purchase-escrow { product-id: product-id, buyer: buyer })
+)
+
+(define-read-only (is-product-for-sale (product-id uint))
+  (let ((listing (map-get? marketplace-listings { product-id: product-id })))
+    (if (is-some listing)
+      (get active (unwrap-panic listing))
+      false
     )
   )
 )
