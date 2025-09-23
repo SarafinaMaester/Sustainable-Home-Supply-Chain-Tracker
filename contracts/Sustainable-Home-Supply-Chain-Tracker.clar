@@ -81,6 +81,29 @@
   }
 )
 
+(define-map carbon-credit-listings
+  { seller: principal }
+  {
+    credits-for-sale: uint,
+    price-per-credit: uint,
+    listed-at: uint,
+    active: bool
+  }
+)
+
+(define-map carbon-credit-trades
+  { trade-id: uint }
+  {
+    seller: principal,
+    buyer: principal,
+    credits-traded: uint,
+    total-price: uint,
+    traded-at: uint
+  }
+)
+
+(define-data-var next-trade-id uint u1)
+
 (define-public (register-vendor (name (string-ascii 64)) (specialty (string-ascii 32)))
   (let ((vendor-id (var-get next-vendor-id)))
     (map-set verified-vendors
@@ -335,6 +358,78 @@
   )
 )
 
+(define-public (list-carbon-credits-for-sale (credits uint) (price uint))
+ (let ((current-credits (default-to { total-credits: u0 }
+                       (map-get? user-carbon-offsets { user: tx-sender })))
+       (existing-listing (map-get? carbon-credit-listings { seller: tx-sender })))
+   (asserts! (> credits u0) ERR_INVALID_RATING)
+   (asserts! (> price u0) ERR_INVALID_RATING)
+   (asserts! (>= (get total-credits current-credits) credits) ERR_INSUFFICIENT_FUNDS)
+   (asserts! (or (is-none existing-listing)
+                 (not (get active (unwrap-panic existing-listing)))) ERR_ALREADY_LISTED)
+   (map-set carbon-credit-listings
+     { seller: tx-sender }
+     {
+       credits-for-sale: credits,
+       price-per-credit: price,
+       listed-at: stacks-block-height,
+       active: true
+     }
+   )
+   (ok true)
+ )
+)
+
+(define-public (purchase-carbon-credits (seller principal) (credits uint))
+ (let ((listing (unwrap! (map-get? carbon-credit-listings { seller: seller }) ERR_NOT_FOUND))
+       (buyer-credits (default-to { total-credits: u0 }
+                         (map-get? user-carbon-offsets { user: tx-sender })))
+       (seller-credits (default-to { total-credits: u0 }
+                          (map-get? user-carbon-offsets { user: seller })))
+       (total-price (* credits (get price-per-credit listing)))
+       (trade-id (var-get next-trade-id)))
+   (asserts! (get active listing) ERR_NOT_FOR_SALE)
+   (asserts! (>= (get credits-for-sale listing) credits) ERR_INSUFFICIENT_FUNDS)
+   (asserts! (>= (stx-get-balance tx-sender) total-price) ERR_INSUFFICIENT_FUNDS)
+   (try! (stx-transfer? total-price tx-sender seller))
+   (map-set user-carbon-offsets
+     { user: tx-sender }
+     { total-credits: (+ (get total-credits buyer-credits) credits) }
+   )
+   (map-set user-carbon-offsets
+     { user: seller }
+     { total-credits: (- (get total-credits seller-credits) credits) }
+   )
+   (map-set carbon-credit-listings
+     { seller: seller }
+     (merge listing { credits-for-sale: (- (get credits-for-sale listing) credits) })
+   )
+   (map-set carbon-credit-trades
+     { trade-id: trade-id }
+     {
+       seller: seller,
+       buyer: tx-sender,
+       credits-traded: credits,
+       total-price: total-price,
+       traded-at: stacks-block-height
+     }
+   )
+   (var-set next-trade-id (+ trade-id u1))
+   (ok trade-id)
+ )
+)
+
+(define-public (cancel-carbon-credit-listing)
+ (let ((listing (unwrap! (map-get? carbon-credit-listings { seller: tx-sender }) ERR_NOT_FOUND)))
+   (asserts! (get active listing) ERR_NOT_FOR_SALE)
+   (map-set carbon-credit-listings
+     { seller: tx-sender }
+     (merge listing { active: false })
+   )
+   (ok true)
+ )
+)
+
 (define-read-only (get-product-info (product-id uint))
   (map-get? products { product-id: product-id })
 )
@@ -385,6 +480,47 @@
   (let ((listing (map-get? marketplace-listings { product-id: product-id })))
     (if (is-some listing)
       (get active (unwrap-panic listing))
+      false
+    )
+  )
+)
+
+(define-read-only (get-carbon-credit-listing (seller principal))
+  (map-get? carbon-credit-listings { seller: seller })
+)
+
+(define-read-only (get-carbon-credit-trade (trade-id uint))
+  (map-get? carbon-credit-trades { trade-id: trade-id })
+)
+
+(define-read-only (is-carbon-credits-for-sale (seller principal))
+  (let ((listing (map-get? carbon-credit-listings { seller: seller })))
+    (if (is-some listing)
+      (get active (unwrap-panic listing))
+      false
+    )
+  )
+)
+
+(define-public (initiate-product-recall (product-id uint) (reason (string-ascii 64)))
+  (let ((product (unwrap! (map-get? products { product-id: product-id }) ERR_NOT_FOUND)))
+    (asserts! (or (is-eq tx-sender (get owner product)) (is-eq tx-sender CONTRACT_OWNER)) ERR_UNAUTHORIZED)
+    (map-set products { product-id: product-id } (merge product { current-stage: "recalled" }))
+    (map-set product-lifecycle { product-id: product-id, stage: "recalled" } { timestamp: stacks-block-height, location: reason, handler: tx-sender, verified: true })
+    (let ((listing (map-get? marketplace-listings { product-id: product-id })))
+      (if (and (is-some listing) (get active (unwrap-panic listing)))
+        (map-set marketplace-listings { product-id: product-id } (merge (unwrap-panic listing) { active: false }))
+        true
+      )
+    )
+    (ok true)
+  )
+)
+
+(define-read-only (is-product-recalled (product-id uint))
+  (let ((product (map-get? products { product-id: product-id })))
+    (if (is-some product)
+      (is-eq (get current-stage (unwrap-panic product)) "recalled")
       false
     )
   )

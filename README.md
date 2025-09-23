@@ -1,4 +1,4 @@
-> 🏠 A blockchain-based platform for tracking eco-friendly home materials from origin to your doorstep
+A blockchain-based platform for tracking eco-friendly home materials from origin to your doorstep
 
 ## 🚀 Overview
 
@@ -31,7 +31,12 @@ The Sustainable Home Supply Chain Tracker is a Clarity smart contract that provi
 - Democratic voting system for product quality
 - Average rating calculations
 
-## 🛠️ Contract Functions
+### 💰 Carbon Credit Marketplace
+- Decentralized trading platform for carbon offset credits
+- Peer-to-peer credit exchanges with STX payments
+- Transparent trade history and escrow-free transactions
+
+## �️ Contract Functions
 
 ### 📦 Product Management
 
@@ -180,3 +185,35 @@ Open source - build a more sustainable future together! 🌱
 ---
 
 *Built with 💚 for a sustainable tomorrow*
+
+### 🚨 Product Recall System
+- Authorized recall initiation for safety and quality control
+- Automatic marketplace listing deactivation
+- Lifecycle tracking for recall events
+- Transparent recall status verification
+
+### 📦 Product Management
+
+#### `initiate-product-recall`
+Initiate a product recall with reason and automatic safety measures
+```clarity
+(initiate-product-recall u1 "Quality Issue Detected")
+```
+
+### 📊 Read-Only Functions
+
+- `is-product-recalled` - Check if a product has been recalled
+
+## 🔒 Security Features
+
+- Recall authorization for owners and admins only
+- Automatic prevention of recalled product sales
+
+## 🌍 Environmental Impact
+
+Each product tracks:
+- 🚨 **Recall Status**: Safety and quality assurance mechanisms
+
+## 📋 Contract Data
+
+- **Recalls**: Authorized product recall tracking and marketplace protection
