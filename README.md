@@ -217,3 +217,29 @@ Each product tracks:
 ## 📋 Contract Data
 
 - **Recalls**: Authorized product recall tracking and marketplace protection
+
+### 🌱 Carbon Credit Retirement
+- Permanent retirement of carbon offset credits for verifiable offsetting
+- User-controlled environmental impact commitment
+- Transparent retirement tracking and balance management
+
+### 🌟 Rating & Credits
+
+#### `retire-carbon-credits`
+Retire carbon credits to permanently offset emissions
+```clarity
+(retire-carbon-credits u10)
+```
+
+### 📊 Read-Only Functions
+
+- `get-retired-carbon-credits` - Get user's total retired carbon credits
+
+## 🌍 Environmental Impact
+
+Each product tracks:
+- 🌱 **Retired Credits**: Permanent carbon offsetting commitments
+
+## 📋 Contract Data
+
+- **Retirements**: User-initiated carbon credit retirement for environmental accountability

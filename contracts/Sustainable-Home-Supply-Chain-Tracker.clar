@@ -102,6 +102,11 @@
   }
 )
 
+(define-map retired-carbon-credits
+  { user: principal }
+  { total-retired: uint }
+)
+
 (define-data-var next-trade-id uint u1)
 
 (define-public (register-vendor (name (string-ascii 64)) (specialty (string-ascii 32)))
@@ -430,6 +435,25 @@
  )
 )
 
+(define-public (retire-carbon-credits (credits uint))
+ (let ((current-credits (default-to { total-credits: u0 }
+                       (map-get? user-carbon-offsets { user: tx-sender })))
+       (current-retired (default-to { total-retired: u0 }
+                        (map-get? retired-carbon-credits { user: tx-sender }))))
+   (asserts! (> credits u0) ERR_INVALID_RATING)
+   (asserts! (>= (get total-credits current-credits) credits) ERR_INSUFFICIENT_FUNDS)
+   (map-set user-carbon-offsets
+     { user: tx-sender }
+     { total-credits: (- (get total-credits current-credits) credits) }
+   )
+   (map-set retired-carbon-credits
+     { user: tx-sender }
+     { total-retired: (+ (get total-retired current-retired) credits) }
+   )
+   (ok credits)
+ )
+)
+
 (define-read-only (get-product-info (product-id uint))
   (map-get? products { product-id: product-id })
 )
@@ -500,6 +524,10 @@
       false
     )
   )
+)
+
+(define-read-only (get-retired-carbon-credits (user principal))
+  (map-get? retired-carbon-credits { user: user })
 )
 
 (define-public (initiate-product-recall (product-id uint) (reason (string-ascii 64)))
