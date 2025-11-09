@@ -108,6 +108,29 @@
 )
 
 (define-data-var next-trade-id uint u1)
+(define-data-var next-claim-id uint u1)
+
+(define-map product-warranties
+  { product-id: uint }
+  {
+    duration-blocks: uint,
+    start-block: uint,
+    coverage-type: (string-ascii 32),
+    active: bool
+  }
+)
+
+(define-map warranty-claims
+  { claim-id: uint }
+  {
+    product-id: uint,
+    claimant: principal,
+    reason: (string-ascii 64),
+    filed-at: uint,
+    resolved: bool,
+    approved: bool
+  }
+)
 
 (define-public (register-vendor (name (string-ascii 64)) (specialty (string-ascii 32)))
   (let ((vendor-id (var-get next-vendor-id)))
@@ -159,6 +182,57 @@
     )
     (var-set next-product-id (+ product-id u1))
     (ok product-id)
+  )
+)
+
+(define-public (set-product-warranty (product-id uint) (duration-blocks uint) (coverage-type (string-ascii 32)))
+  (let ((product (unwrap! (map-get? products { product-id: product-id }) ERR_NOT_FOUND)))
+    (asserts! (is-eq tx-sender (get owner product)) ERR_UNAUTHORIZED)
+    (asserts! (> duration-blocks u0) ERR_INVALID_RATING)
+    (map-set product-warranties
+      { product-id: product-id }
+      {
+        duration-blocks: duration-blocks,
+        start-block: stacks-block-height,
+        coverage-type: coverage-type,
+        active: true
+      }
+    )
+    (ok true)
+  )
+)
+
+(define-public (file-warranty-claim (product-id uint) (reason (string-ascii 64)))
+  (let ((warranty (unwrap! (map-get? product-warranties { product-id: product-id }) ERR_NOT_FOUND))
+        (claim-id (var-get next-claim-id)))
+    (asserts! (get active warranty) ERR_NOT_FOR_SALE)
+    (asserts! (<= stacks-block-height (+ (get start-block warranty) (get duration-blocks warranty))) ERR_INVALID_STAGE)
+    (map-set warranty-claims
+      { claim-id: claim-id }
+      {
+        product-id: product-id,
+        claimant: tx-sender,
+        reason: reason,
+        filed-at: stacks-block-height,
+        resolved: false,
+        approved: false
+      }
+    )
+    (var-set next-claim-id (+ claim-id u1))
+    (ok claim-id)
+  )
+)
+
+(define-public (resolve-warranty-claim (claim-id uint) (approved bool))
+  (let ((claim (unwrap! (map-get? warranty-claims { claim-id: claim-id }) ERR_NOT_FOUND))
+        (product (unwrap! (map-get? products { product-id: (get product-id claim) }) ERR_NOT_FOUND)))
+    (asserts! (is-eq tx-sender (get owner product)) ERR_UNAUTHORIZED)
+    (asserts! (not (get resolved claim)) ERR_ALREADY_EXISTS)
+    (map-set warranty-claims
+      { claim-id: claim-id }
+      (merge claim { resolved: true, approved: approved })
+    )
+    (ok true)
   )
 )
 
@@ -528,6 +602,25 @@
 
 (define-read-only (get-retired-carbon-credits (user principal))
   (map-get? retired-carbon-credits { user: user })
+)
+
+(define-read-only (get-product-warranty (product-id uint))
+  (map-get? product-warranties { product-id: product-id })
+)
+
+(define-read-only (get-warranty-claim (claim-id uint))
+  (map-get? warranty-claims { claim-id: claim-id })
+)
+
+(define-read-only (is-warranty-active (product-id uint))
+  (let ((warranty (map-get? product-warranties { product-id: product-id })))
+    (if (is-some warranty)
+      (let ((data (unwrap-panic warranty)))
+        (and (get active data)
+             (<= stacks-block-height (+ (get start-block data) (get duration-blocks data)))))
+      false
+    )
+  )
 )
 
 (define-public (initiate-product-recall (product-id uint) (reason (string-ascii 64)))

@@ -200,23 +200,49 @@ Initiate a product recall with reason and automatic safety measures
 (initiate-product-recall u1 "Quality Issue Detected")
 ```
 
+#### `set-product-warranty`
+Establish warranty coverage for products with customizable duration and type
+```clarity
+(set-product-warranty u1 u1440 "full-coverage")
+```
+
+#### `file-warranty-claim`
+Submit warranty claims during active coverage period
+```clarity
+(file-warranty-claim u1 "Manufacturing Defect")
+```
+
+#### `resolve-warranty-claim`
+Process and approve/deny warranty claims by product owners
+```clarity
+(resolve-warranty-claim u1 true)
+```
+
 ### 📊 Read-Only Functions
 
 - `is-product-recalled` - Check if a product has been recalled
+- `get-product-warranty` - Retrieve warranty details for products
+- `get-warranty-claim` - Get specific warranty claim information
+- `is-warranty-active` - Verify current warranty status and validity
 
 ## 🔒 Security Features
 
 - Recall authorization for owners and admins only
 - Automatic prevention of recalled product sales
+- Warranty management restricted to product owners
+- Claim resolution limited to product owners
+- Time-based warranty expiration validation
 
 ## 🌍 Environmental Impact
 
 Each product tracks:
 - 🚨 **Recall Status**: Safety and quality assurance mechanisms
+- 🛡️ **Warranty Coverage**: Comprehensive protection and support tracking
 
 ## 📋 Contract Data
 
 - **Recalls**: Authorized product recall tracking and marketplace protection
+- **Warranties**: Product warranty management with claims processing
 
 ### 🌱 Carbon Credit Retirement
 - Permanent retirement of carbon offset credits for verifiable offsetting
