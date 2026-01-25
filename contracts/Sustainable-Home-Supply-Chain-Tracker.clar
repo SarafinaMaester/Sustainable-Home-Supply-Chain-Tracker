@@ -132,6 +132,11 @@
   }
 )
 
+(define-map product-donations
+  { product-id: uint }
+  { charity: principal, donated-at: uint }
+)
+
 (define-public (register-vendor (name (string-ascii 64)) (specialty (string-ascii 32)))
   (let ((vendor-id (var-get next-vendor-id)))
     (map-set verified-vendors
@@ -644,5 +649,67 @@
       (is-eq (get current-stage (unwrap-panic product)) "recalled")
       false
     )
+  )
+)
+
+(define-read-only (get-product-donation (product-id uint))
+  (map-get? product-donations { product-id: product-id })
+)
+
+(define-public (register-products-batch (products-list (list 10 { name: (string-ascii 64), category: (string-ascii 32), vendor-id: uint, carbon-footprint: uint, carbon-offset-credits: uint })))
+  (begin
+    (fold register-single-product products-list true)
+    (ok true)
+  )
+)
+
+(define-private (register-single-product (product-data { name: (string-ascii 64), category: (string-ascii 32), vendor-id: uint, carbon-footprint: uint, carbon-offset-credits: uint }) (acc bool))
+  (let ((vendor-id (get vendor-id product-data)))
+    (if (is-some (map-get? verified-vendors { vendor-id: vendor-id }))
+      (let ((product-id (var-get next-product-id)))
+        (map-set products
+          { product-id: product-id }
+          {
+            name: (get name product-data),
+            category: (get category product-data),
+            vendor-id: vendor-id,
+            carbon-footprint: (get carbon-footprint product-data),
+            carbon-offset-credits: (get carbon-offset-credits product-data),
+            sustainability-score: u0,
+            current-stage: "raw-materials",
+            owner: tx-sender,
+            created-at: stacks-block-height
+          }
+        )
+        (map-set product-lifecycle
+          { product-id: product-id, stage: "raw-materials" }
+          {
+            timestamp: stacks-block-height,
+            location: "origin",
+            handler: tx-sender,
+            verified: true
+          }
+        )
+        (var-set next-product-id (+ product-id u1))
+        true
+      )
+      acc
+    )
+  )
+)
+
+(define-public (donate-product (product-id uint) (charity principal))
+  (let ((product (unwrap! (map-get? products { product-id: product-id }) ERR_NOT_FOUND)))
+    (asserts! (is-eq tx-sender (get owner product)) ERR_UNAUTHORIZED)
+    (map-set products
+      { product-id: product-id }
+      (merge product { owner: charity })
+    )
+    (try! (update-lifecycle-stage product-id "donated" "charity"))
+    (map-set product-donations
+      { product-id: product-id }
+      { charity: charity, donated-at: stacks-block-height }
+    )
+    (ok true)
   )
 )

@@ -31,6 +31,11 @@ The Sustainable Home Supply Chain Tracker is a Clarity smart contract that provi
 - Democratic voting system for product quality
 - Average rating calculations
 
+### 🎁 Product Donation System
+- Charitable product donations to organizations
+- Ownership transfer with lifecycle updates
+- Donation history tracking
+
 ### 💰 Carbon Credit Marketplace
 - Decentralized trading platform for carbon offset credits
 - Peer-to-peer credit exchanges with STX payments
@@ -56,6 +61,12 @@ Update product journey stage with location verification
 Transfer product ownership with automatic lifecycle update
 ```clarity
 (transfer-product-ownership u1 'SP2ABC...)
+```
+
+#### `donate-product`
+Donate a product to a charitable organization
+```clarity
+(donate-product u1 'SPCHARITY...)
 ```
 
 ### 🏭 Vendor Operations
@@ -93,6 +104,7 @@ Claim carbon offset credits from owned products
 - `get-vendor-info` - Get vendor details and certification
 - `get-product-rating` - Get voting totals for products
 - `get-user-vote` - Check individual user votes
+- `get-product-donation` - Get donation details for products
 - `get-carbon-credits` - Get user's total carbon credits
 - `calculate-average-rating` - Get calculated average rating
 
@@ -153,6 +165,7 @@ clarinet console
 ## 🔒 Security Features
 
 - Owner-only product transfers
+- Donation authorization restricted to product owners
 - Admin-controlled vendor verification
 - Input validation for ratings (1-5 scale)
 - Unauthorized access protection
@@ -162,17 +175,19 @@ clarinet console
 
 Each product tracks:
 - 🏭 **Carbon Footprint**: Total emissions during production
-- 🌱 **Carbon Offset Credits**: Environmental compensation credits  
+- 🌱 **Carbon Offset Credits**: Environmental compensation credits
 - ⭐ **Community Ratings**: Crowd-sourced sustainability scores
+- 🎁 **Donation Tracking**: Charitable giving and product redistribution
 - 📍 **Supply Chain Transparency**: Full journey tracking
 
 ## 📋 Contract Data
 
 - **Products**: 257 lines of comprehensive tracking
-- **Vendors**: Verified sustainability partners  
+- **Vendors**: Verified sustainability partners
 - **Lifecycle**: Complete journey documentation
 - **Ratings**: Democratic sustainability assessment
 - **Credits**: Personal environmental impact tracking
+- **Donations**: Product donation records for social impact
 
 ## 🤝 Contributing
 
